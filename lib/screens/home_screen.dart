@@ -1,5 +1,5 @@
+import 'package:crypto_navigator/screens/search_screen.dart';
 import 'package:flutter/material.dart';
-import '../widgets/bottom_nav_bar.dart';
 import 'crypto_list_screen.dart';
 import 'favorites_screen.dart';
 import 'profile_screen.dart';
@@ -13,6 +13,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final List<Widget> _screens = [
     CryptoListScreen(),
+    SearchScreen(),
     FavoritesScreen(),
     ProfileScreen()
   ];
@@ -27,9 +28,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: 'Crypto List',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }

@@ -1,0 +1,2 @@
+C:/Users/VARAD/OneDrive/Desktop/CryptoNavigator/Project/crypto_navigator/android/app/.cxx/RelWithDebInfo/3v3s5bj6/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/VARAD/OneDrive/Desktop/CryptoNavigator/Project/crypto_navigator/android/app/.cxx/RelWithDebInfo/3v3s5bj6/armeabi-v7a/CMakeFiles/rebuild_cache.dir

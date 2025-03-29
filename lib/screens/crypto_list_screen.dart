@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../providers/favorites_provider.dart';
+import 'crypto_detail_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CryptoListScreen extends StatefulWidget {
   @override
@@ -12,6 +15,7 @@ class CryptoListScreen extends StatefulWidget {
 class _CryptoListScreenState extends State<CryptoListScreen> {
   List<dynamic> cryptoData = [];
   bool isLoading = true;
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
@@ -43,6 +47,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   @override
   Widget build(BuildContext context) {
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
+    final user = supabase.auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +65,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
               itemCount: cryptoData.length,
               itemBuilder: (context, index) {
                 final coin = cryptoData[index];
-                final isFavorite = favoritesProvider.isFavorite(coin);
+                final isFavorite = favoritesProvider.isFavorite(coin['id']);
 
                 return Card(
                   child: ListTile(
@@ -75,11 +80,22 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                         color: isFavorite ? Colors.red : null,
                       ),
                       onPressed: () {
-                        isFavorite
-                            ? favoritesProvider.removeFavorite(coin)
-                            : favoritesProvider.addFavorite(coin);
+                        if (isFavorite) {
+                          favoritesProvider.removeFavorite(
+                              user!.id, coin['id']);
+                        } else {
+                          favoritesProvider.addFavorite(user!.id, coin);
+                        }
                       },
                     ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CryptoDetailScreen(coin: coin),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
