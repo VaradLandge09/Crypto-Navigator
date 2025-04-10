@@ -1,3 +1,5 @@
+import 'package:crypto_navigator/screens/reset_password_screen.dart';
+import 'package:crypto_navigator/screens/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,10 +50,10 @@ class ThemeProvider with ChangeNotifier {
   final ThemeData _darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    primaryColor: Color(0xFF6200EE),
-    scaffoldBackgroundColor: Color(0xFF121212),
-    cardColor: Color(0xFF1E1E1E),
-    colorScheme: ColorScheme.dark(
+    primaryColor: const Color(0xFF6200EE),
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    cardColor: const Color(0xFF1E1E1E),
+    colorScheme: const ColorScheme.dark(
       primary: Color(0xFF6200EE),
       secondary: Color(0xFF03DAC6),
       surface: Color(0xFF1E1E1E),
@@ -59,14 +61,14 @@ class ThemeProvider with ChangeNotifier {
       error: Color(0xFFCF6679),
     ),
     textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF1E1E1E),
       elevation: 0,
     ),
     bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      selectedItemColor: Color(0xFF6200EE),
+      selectedItemColor: const Color(0xFF6200EE),
       unselectedItemColor: Colors.grey[500],
-      backgroundColor: Color(0xFF1E1E1E),
+      backgroundColor: const Color(0xFF1E1E1E),
       type: BottomNavigationBarType.fixed,
       elevation: 8,
     ),
@@ -78,9 +80,9 @@ class ThemeProvider with ChangeNotifier {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF6200EE),
+        backgroundColor: const Color(0xFF6200EE),
         foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -88,14 +90,14 @@ class ThemeProvider with ChangeNotifier {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Color(0xFF2A2A2A),
+      fillColor: const Color(0xFF2A2A2A),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFF6200EE), width: 2),
+        borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
       ),
     ),
   );
@@ -104,10 +106,10 @@ class ThemeProvider with ChangeNotifier {
   final ThemeData _lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    primaryColor: Color(0xFF6200EE),
-    scaffoldBackgroundColor: Color(0xFFF8F8F8),
+    primaryColor: const Color(0xFF6200EE),
+    scaffoldBackgroundColor: const Color(0xFFF8F8F8),
     cardColor: Colors.white,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: Color(0xFF6200EE),
       secondary: Color(0xFF03DAC6),
       surface: Colors.white,
@@ -115,13 +117,13 @@ class ThemeProvider with ChangeNotifier {
       error: Color(0xFFB00020),
     ),
     textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
       foregroundColor: Color(0xFF1E1E1E),
       elevation: 0,
     ),
     bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      selectedItemColor: Color(0xFF6200EE),
+      selectedItemColor: const Color(0xFF6200EE),
       unselectedItemColor: Colors.grey[600],
       backgroundColor: Colors.white,
       type: BottomNavigationBarType.fixed,
@@ -135,9 +137,9 @@ class ThemeProvider with ChangeNotifier {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF6200EE),
+        backgroundColor: const Color(0xFF6200EE),
         foregroundColor: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -145,14 +147,14 @@ class ThemeProvider with ChangeNotifier {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Color(0xFFF0F0F0),
+      fillColor: const Color(0xFFF0F0F0),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFF6200EE), width: 2),
+        borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
       ),
     ),
   );
@@ -169,7 +171,13 @@ class CryptoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Crypto Tracker',
       theme: themeProvider.currentTheme,
-      home: LoadingScreen(), // Always start with LoadingScreen
+      home: LoadingScreen(),
+      routes: {
+        '/signup': (context) => SignupScreen(),
+        '/login': (context) => LoginScreen(),
+        '/home': (context) => CryptoApp(),
+        '/reset-password': (context) => ResetPasswordScreen(),
+      },
     );
   }
 }
@@ -198,7 +206,7 @@ class AuthGate extends StatelessWidget {
               children: [
                 // Check if logo asset exists, otherwise use animated icon
                 FadeIn(
-                  duration: Duration(milliseconds: 1200),
+                  duration: const Duration(milliseconds: 1200),
                   child: Container(
                     width: 120,
                     height: 120,
@@ -214,17 +222,17 @@ class AuthGate extends StatelessWidget {
                       child: Icon(
                         Icons.currency_bitcoin,
                         color: isDarkMode
-                            ? Color(0xFF03DAC6)
+                            ? const Color(0xFF03DAC6)
                             : primaryColor.withOpacity(0.8),
                         size: 60,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 FadeIn(
-                  delay: Duration(milliseconds: 300),
-                  duration: Duration(milliseconds: 1500),
+                  delay: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 1500),
                   child: Text(
                     "CryptoNavigator",
                     style: GoogleFonts.inter(
@@ -234,10 +242,10 @@ class AuthGate extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 FadeIn(
-                  delay: Duration(milliseconds: 600),
-                  duration: Duration(milliseconds: 1500),
+                  delay: const Duration(milliseconds: 600),
+                  duration: const Duration(milliseconds: 1500),
                   child: Text(
                     "Track. Analyze. Navigate.",
                     style: GoogleFonts.inter(
@@ -246,15 +254,16 @@ class AuthGate extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: 40),
+                const SizedBox(height: 40),
                 FadeIn(
-                  delay: Duration(milliseconds: 900),
-                  duration: Duration(milliseconds: 1500),
+                  delay: const Duration(milliseconds: 900),
+                  duration: const Duration(milliseconds: 1500),
                   child: Container(
                     width: 200,
                     child: LinearProgressIndicator(
-                      backgroundColor:
-                          isDarkMode ? Color(0xFF2A2A2A) : Color(0xFFF0F0F0),
+                      backgroundColor: isDarkMode
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFF0F0F0),
                       valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
                       minHeight: 6,
                       borderRadius: BorderRadius.circular(3),
@@ -328,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen>
       appBar: AppBar(
         title: Text(
           _titles[_selectedIndex],
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -348,10 +357,10 @@ class _HomeScreenState extends State<HomeScreen>
 
           // Notification bell (can be implemented later)
           IconButton(
-            icon: Icon(Icons.notifications_outlined),
+            icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Notifications coming soon!'),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -363,7 +372,8 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        physics: NeverScrollableScrollPhysics(), // Disable swipe to change tabs
+        physics:
+            const NeverScrollableScrollPhysics(), // Disable swipe to change tabs
         children: _screens,
       ),
       bottomNavigationBar: Container(
@@ -372,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen>
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
-              offset: Offset(0, -2),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -380,23 +390,23 @@ class _HomeScreenState extends State<HomeScreen>
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           items: [
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.show_chart),
               label: 'Market',
               tooltip: 'Market Overview',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.search),
               label: 'Search',
               tooltip: 'Search Cryptocurrencies',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.favorite_outline),
               activeIcon: Icon(Icons.favorite),
               label: 'Favorites',
               tooltip: 'Your Favorite Cryptocurrencies',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
               label: 'Profile',
@@ -412,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen>
                 if (_selectedIndex == 0) {
                   // Refresh market data
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
+                    const SnackBar(
                       content: Text('Refreshing market data...'),
                       behavior: SnackBarBehavior.floating,
                     ),

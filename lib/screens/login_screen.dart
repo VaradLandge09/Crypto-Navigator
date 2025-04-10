@@ -20,15 +20,74 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null) {
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => CryptoApp()),
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Invalid credentials")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Invalid credentials")),
+      );
     }
+  }
+
+  // ✅ Forgot Password Dialog
+  void _showForgotPasswordDialog() {
+    final TextEditingController emailResetController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset Password'),
+        content: TextField(
+          controller: emailResetController,
+          decoration: InputDecoration(labelText: 'Enter your email'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailResetController.text.trim();
+              if (email.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Please enter your email")),
+                );
+                return;
+              }
+
+              try {
+                await Supabase.instance.client.auth.resetPasswordForEmail(
+                  email,
+                  redirectTo: 'https://localhost/reset-password',
+                );
+
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Password reset email sent.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (error) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Failed to send reset email."),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text('Send'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -40,12 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo added here
+            // Logo
             Padding(
               padding: const EdgeInsets.only(bottom: 40.0),
               child: Image.asset(
-                'logo.png', // Path to your logo image
-                width: 200, // Adjust size as needed
+                'logo.png',
+                width: 200,
                 height: 200,
               ),
             ),
@@ -54,7 +113,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: TextField(
                 controller: _emailController,
                 decoration: InputDecoration(labelText: 'Email'),
-                obscureText: false,
               ),
             ),
             Padding(
@@ -65,12 +123,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
               ),
             ),
-            SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _showForgotPasswordDialog,
+                child: Text("Forgot Password?"),
+              ),
+            ),
+            SizedBox(height: 10),
             ElevatedButton(onPressed: _loginUser, child: Text('Login')),
             TextButton(
               onPressed: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => SignupScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignupScreen()),
+                );
               },
               child: Text('Create a new account'),
             ),

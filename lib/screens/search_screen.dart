@@ -1,3 +1,4 @@
+import 'package:crypto_navigator/screens/crypto_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -9,9 +10,9 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   TextEditingController _searchController = TextEditingController();
-  List<dynamic> _searchResults = [];
+  List _searchResults = [];
 
-  Future<void> _searchCrypto(String query) async {
+  Future _searchCrypto(String query) async {
     if (query.isEmpty) return;
 
     final url = Uri.parse(
@@ -19,7 +20,7 @@ class _SearchScreenState extends State<SearchScreen> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
-        List<dynamic> cryptoData = json.decode(response.body);
+        List cryptoData = json.decode(response.body);
         setState(() {
           _searchResults = cryptoData
               .where((coin) =>
@@ -28,7 +29,7 @@ class _SearchScreenState extends State<SearchScreen> {
               .toList();
         });
       } else {
-        throw Exception('Failed to load data');
+        throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
       print('Error: $e');
@@ -55,6 +56,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
+              onSubmitted: (value) => _searchCrypto(value),
             ),
           ),
           Expanded(
@@ -66,6 +68,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   leading: Image.network(coin['image'], width: 40, height: 40),
                   title: Text(coin['name']),
                   subtitle: Text('Price: \$${coin['current_price']}'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CryptoDetailScreen(coin: coin),
+                      ),
+                    );
+                  },
                 );
               },
             ),

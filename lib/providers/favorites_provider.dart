@@ -16,15 +16,19 @@ class FavoritesProvider extends ChangeNotifier {
   }
 
   Future<void> addFavorite(String userId, Map<String, dynamic> coin) async {
-    await supabase.from('favorites').insert({
+    // Create a new map for the database
+    final favoriteData = {
       'user_id': userId,
       'crypto_id': coin['id'],
       'crypto_name': coin['name'],
       'crypto_image': coin['image'],
       'current_price': coin['current_price'],
-    });
+    };
 
-    _favorites.add(coin);
+    await supabase.from('favorites').insert(favoriteData);
+
+    // Add the database format to our local list
+    _favorites.add(favoriteData);
     notifyListeners();
   }
 
@@ -35,11 +39,12 @@ class FavoritesProvider extends ChangeNotifier {
         .eq('user_id', userId)
         .eq('crypto_id', cryptoId);
 
-    _favorites.removeWhere((coin) => coin['id'] == cryptoId);
+    // Use the correct key for comparison
+    _favorites.removeWhere((favorite) => favorite['crypto_id'] == cryptoId);
     notifyListeners();
   }
 
   bool isFavorite(String cryptoId) {
-    return _favorites.any((coin) => coin['crypto_id'] == cryptoId);
+    return _favorites.any((favorite) => favorite['crypto_id'] == cryptoId);
   }
 }

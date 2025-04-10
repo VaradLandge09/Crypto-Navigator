@@ -138,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Profile updated successfully'),
             backgroundColor: Colors.green,
           ),
@@ -152,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Failed to update profile. Please try again.'),
           backgroundColor: Colors.red,
         ),
@@ -187,28 +187,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> logout() async {
+    if (!mounted) return; // ✅ Prevents calling setState on disposed widget
+
     setState(() {
       isLoggingOut = true;
     });
 
     try {
       await supabase.auth.signOut();
-      // Navigate to login screen after logout
-      // You'll need to replace this with your actual navigation logic
-      Navigator.of(context).pushReplacementNamed('/login');
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Failed to logout: ${e.toString()}';
-        isLoggingOut = false;
-      });
 
-      // Show error snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to logout. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        // ✅ Check before updating UI
+        setState(() {
+          isLoggingOut = false;
+        });
+      }
+
+      // ✅ Ensure navigation happens outside setState
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Failed to logout: ${e.toString()}';
+          isLoggingOut = false;
+        });
+
+        // ✅ Show error message safely
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to logout. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -216,11 +229,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('My Profile'),
+        title: const Text('My Profile'),
         actions: [
           isLoggingOut
-              ? Padding(
-                  padding: const EdgeInsets.all(10.0),
+              ? const Padding(
+                  padding: EdgeInsets.all(10.0),
                   child: Center(
                     child: SizedBox(
                       height: 20,
@@ -234,23 +247,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 )
               : TextButton.icon(
                   onPressed: logout,
-                  icon: Icon(Icons.logout, color: Colors.white),
-                  label: Text(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
                     'Logout',
                     style: TextStyle(color: Colors.white),
                   ),
                   style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                 ),
         ],
       ),
       body: SafeArea(
         child: isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -269,7 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: Theme.of(context).primaryColor,
                               ),
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
                               name,
                               style: Theme.of(context).textTheme.headlineSmall,
@@ -283,7 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
                           ],
                         ),
                       ),
@@ -291,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       // Error message
                       if (errorMessage != null) ...[
                         Container(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: Colors.red.shade50,
                             borderRadius: BorderRadius.circular(8),
@@ -299,18 +312,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.error_outline, color: Colors.red),
-                              SizedBox(width: 8),
+                              const Icon(Icons.error_outline,
+                                  color: Colors.red),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   errorMessage!,
-                                  style: TextStyle(color: Colors.red),
+                                  style: const TextStyle(color: Colors.red),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                       ],
 
                       // Profile info card
@@ -320,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -345,7 +359,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         });
                                       },
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                             horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
                                           color: Theme.of(context)
@@ -362,7 +376,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               color: Theme.of(context)
                                                   .primaryColor,
                                             ),
-                                            SizedBox(width: 4),
+                                            const SizedBox(width: 4),
                                             Text(
                                               'Edit',
                                               style: TextStyle(
@@ -377,8 +391,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     ),
                                 ],
                               ),
-                              Divider(),
-                              SizedBox(height: 8),
+                              const Divider(),
+                              const SizedBox(height: 8),
 
                               // Name info
                               isEditing
@@ -393,7 +407,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       label: 'Full Name',
                                       value: name,
                                     ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
                               // Phone info
                               isEditing
@@ -408,7 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       label: 'Phone Number',
                                       value: phone,
                                     ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
                               // DOB info
                               isEditing
@@ -420,7 +434,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           label: 'Date of Birth',
                                           controller: dobController,
                                           keyboardType: TextInputType.datetime,
-                                          suffix: Icon(Icons.calendar_today,
+                                          suffix: const Icon(
+                                              Icons.calendar_today,
                                               size: 18),
                                         ),
                                       ),
@@ -430,7 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       label: 'Date of Birth',
                                       value: dob,
                                     ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
                               // Gender info (not editable)
                               ProfileInfoItem(
@@ -438,7 +453,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 label: 'Gender',
                                 value: gender,
                               ),
-                              SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
                               // PAN Number info (not editable)
                               ProfileInfoItem(
@@ -451,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
 
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
                       // Action buttons
                       if (isEditing) ...[
@@ -470,21 +485,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           dobController.text = dob;
                                         });
                                       },
-                                child: Text('Cancel'),
+                                child: const Text('Cancel'),
                                 style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
                               ),
                             ),
-                            SizedBox(width: 16),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: isSaving ? null : updateProfile,
+                                style: ElevatedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
                                 child: isSaving
-                                    ? Row(
+                                    ? const Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.center,
                                         children: [
@@ -500,13 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           Text('Saving...'),
                                         ],
                                       )
-                                    : Text('Save Changes'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
+                                    : const Text('Save Changes'),
                               ),
                             ),
                           ],
@@ -539,7 +556,7 @@ class ProfileInfoItem extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -550,7 +567,7 @@ class ProfileInfoItem extends StatelessWidget {
             color: Theme.of(context).primaryColor,
           ),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,10 +579,10 @@ class ProfileInfoItem extends StatelessWidget {
                   color: Colors.grey[600],
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
                 value,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
@@ -600,7 +617,7 @@ class EditableProfileField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
@@ -611,7 +628,7 @@ class EditableProfileField extends StatelessWidget {
             color: Theme.of(context).primaryColor,
           ),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -623,19 +640,19 @@ class EditableProfileField extends StatelessWidget {
                   color: Colors.grey[600],
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               TextField(
                 controller: controller,
                 keyboardType: keyboardType,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),
                 decoration: InputDecoration(
                   contentPadding:
-                      EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                   isDense: true,
-                  border: UnderlineInputBorder(),
+                  border: const UnderlineInputBorder(),
                   suffix: suffix,
                 ),
               ),

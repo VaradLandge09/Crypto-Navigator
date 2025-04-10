@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -21,6 +20,12 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
   void initState() {
     super.initState();
     fetchCryptoData();
+
+    final user = supabase.auth.currentUser;
+    if (user != null) {
+      Provider.of<FavoritesProvider>(context, listen: false)
+          .fetchFavorites(user.id);
+    }
   }
 
   Future<void> fetchCryptoData() async {
@@ -46,58 +51,70 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final user = supabase.auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Crypto Prices'),
+        title: const Text('Crypto Prices'),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh),
             onPressed: fetchCryptoData,
           ),
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              itemCount: cryptoData.length,
-              itemBuilder: (context, index) {
-                final coin = cryptoData[index];
-                final isFavorite = favoritesProvider.isFavorite(coin['id']);
+          ? const Center(child: CircularProgressIndicator())
+          : Consumer<FavoritesProvider>(
+              // 👈 Wrap with Consumer
+              builder: (context, favoritesProvider, child) {
+                return ListView.builder(
+                    itemCount: cryptoData.length,
+                    // In the ListView.builder of CryptoListScreen
+                    itemBuilder: (context, index) {
+                      final coin = cryptoData[index];
+                      final isFavorite =
+                          favoritesProvider.isFavorite(coin['id']);
 
-                return Card(
-                  child: ListTile(
-                    leading:
-                        Image.network(coin['image'], width: 40, height: 40),
-                    title: Text(coin['name']),
-                    subtitle: Text(
-                        'Price: \$${coin['current_price']} | Change: ${coin['price_change_percentage_24h'].toStringAsFixed(2)}%'),
-                    trailing: IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : null,
-                      ),
-                      onPressed: () {
-                        if (isFavorite) {
-                          favoritesProvider.removeFavorite(
-                              user!.id, coin['id']);
-                        } else {
-                          favoritesProvider.addFavorite(user!.id, coin);
-                        }
-                      },
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CryptoDetailScreen(coin: coin),
+                      return Card(
+                        child: ListTile(
+                          leading: Image.network(coin['image'],
+                              width: 40, height: 40),
+                          title: Text(coin['name']),
+                          subtitle: Text(
+                              'Price: \$${coin['current_price']} | Change: ${coin['price_change_percentage_24h']?.toStringAsFixed(2) ?? "N/A"}%'),
+                          trailing: IconButton(
+                            icon: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFavorite ? Colors.red : null,
+                            ),
+                            onPressed: user != null
+                                ? () async {
+                                    if (isFavorite) {
+                                      await favoritesProvider.removeFavorite(
+                                          user.id, coin['id']);
+                                    } else {
+                                      await favoritesProvider.addFavorite(
+                                          user.id, coin);
+                                    }
+                                    // No need for setState here since notifyListeners will trigger a rebuild
+                                  }
+                                : null,
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    CryptoDetailScreen(coin: coin),
+                              ),
+                            );
+                          },
                         ),
                       );
-                    },
-                  ),
-                );
+                    });
               },
             ),
     );

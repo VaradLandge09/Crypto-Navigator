@@ -19,47 +19,141 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   bool isLoading = false;
+  String? errorMessage;
+
+  // ✅ Function to validate input fields
+  bool _validateInputs() {
+    if (_nameController.text.trim().isEmpty ||
+        _selectedGender == null ||
+        _panController.text.trim().isEmpty ||
+        _dobController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      setState(() => errorMessage = "All fields are required!");
+      return false;
+    }
+
+    if (!RegExp(r"^[6-9]\d{9}$").hasMatch(_phoneController.text.trim())) {
+      setState(() => errorMessage = "Invalid phone number!");
+      return false;
+    }
+
+    if (!RegExp(r"^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+        .hasMatch(_passwordController.text.trim())) {
+      setState(() => errorMessage =
+          "Password must be at least 8 characters, include an uppercase letter, a number, and a special character!");
+      return false;
+    }
+
+    setState(() => errorMessage = null);
+    return true;
+  }
 
   Future<void> signUpUser() async {
+    if (!_validateInputs()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage!), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
+      final email = _emailController.text.trim();
+      final pan = _panController.text.trim();
+      final phone = _phoneController.text.trim();
+
+      // ✅ Check if PAN or Phone already exists
+      final existingUser = await supabase
+          .from('users')
+          .select('id')
+          .eq('pan_number', pan)
+          .maybeSingle();
+
+      if (existingUser != null) {
+        setState(() {
+          errorMessage = "PAN number already exists!";
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+
+        setState(() => isLoading = false);
+        return;
+      }
+
+      // ✅ Attempt Signup
       final AuthResponse response = await supabase.auth.signUp(
-        email: _emailController.text.trim(),
+        email: email,
         password: _passwordController.text.trim(),
       );
 
       final user = response.user;
       if (user != null) {
-        await supabase.from('users').insert({
-          'id': user.id,
-          'name': _nameController.text.trim(),
-          'gender': _selectedGender,
-          'pan_number': _panController.text.trim(),
-          'date_of_birth': _dobController.text.trim(),
-          'phone_number': _phoneController.text.trim(),
-          'created_at': DateTime.now().toIso8601String(),
-        });
+        try {
+          // ✅ Insert user data into `users` table
+          await supabase.from('users').insert({
+            'id': user.id,
+            'name': _nameController.text.trim(),
+            'gender': _selectedGender,
+            'pan_number': pan,
+            'date_of_birth': _dobController.text.trim(),
+            'phone_number': phone,
+            'created_at': DateTime.now().toIso8601String(),
+          });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Signup successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+          // ✅ Automatically log in the user
+          await supabase.auth.signInWithPassword(
+            email: email,
+            password: _passwordController.text.trim(),
+          );
 
-        Navigator.pushReplacementNamed(context, '/home');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signup successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.pushReplacementNamed(context, '/home'); // Navigate to home
+        } catch (error) {
+          // ❌ Delete user from auth.users if inserting into `users` table fails
+          await supabase.auth.admin.deleteUser(user.id);
+
+          setState(() {
+            errorMessage = "Signup failed: $error";
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (error) {
+      setState(() {
+        errorMessage = "Signup failed: $error";
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Signup failed: $error'),
+          content: Text(errorMessage!),
           backgroundColor: Colors.red,
         ),
       );
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -80,22 +174,20 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Sign Up")),
+      appBar: AppBar(title: const Text("Sign Up")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // Name Field
+            if (errorMessage != null)
+              Text(errorMessage!,
+                  style: const TextStyle(color: Colors.red, fontSize: 14)),
+
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: "Full Name",
-                prefixIcon: Icon(Icons.person),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("Full Name", Icons.person),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
             // Gender Dropdown
             DropdownButtonFormField<String>(
@@ -105,79 +197,50 @@ class _SignupScreenState extends State<SignupScreen> {
                       DropdownMenuItem(value: gender, child: Text(gender)))
                   .toList(),
               onChanged: (value) => setState(() => _selectedGender = value),
-              decoration: InputDecoration(
-                labelText: "Gender",
-                prefixIcon: Icon(Icons.wc),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("Gender", Icons.wc),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
-            // PAN Number Field
+            // PAN Number
             TextField(
               controller: _panController,
-              decoration: InputDecoration(
-                labelText: "PAN Number",
-                prefixIcon: Icon(Icons.credit_card),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("PAN Number", Icons.credit_card),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
-            // Date of Birth Field with Date Picker
+            // Date of Birth
             TextField(
               controller: _dobController,
               readOnly: true,
               onTap: () => _selectDate(context),
-              decoration: InputDecoration(
-                labelText: "Date of Birth",
-                prefixIcon: Icon(Icons.calendar_today),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration:
+                  _inputDecoration("Date of Birth", Icons.calendar_today),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
-            // Phone Number Field
+            // Phone Number
             TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: "Phone Number",
-                prefixIcon: Icon(Icons.phone),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("Phone Number", Icons.phone),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
-            // Email Field
+            // Email
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: "Email",
-                prefixIcon: Icon(Icons.email),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("Email", Icons.email),
             ),
-            SizedBox(height: 15),
+            const SizedBox(height: 15),
 
-            // Password Field
+            // Password
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: InputDecoration(
-                labelText: "Password",
-                prefixIcon: Icon(Icons.lock),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+              decoration: _inputDecoration("Password", Icons.lock),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
 
             // Sign Up Button
             SizedBox(
@@ -186,8 +249,8 @@ class _SignupScreenState extends State<SignupScreen> {
               child: ElevatedButton(
                 onPressed: isLoading ? null : signUpUser,
                 child: isLoading
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text("Sign Up", style: TextStyle(fontSize: 18)),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Sign Up", style: TextStyle(fontSize: 18)),
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -197,6 +260,14 @@ class _SignupScreenState extends State<SignupScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 }
