@@ -34,6 +34,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
+        if (!mounted) return;
         setState(() {
           cryptoData = json.decode(response.body);
           isLoading = false;
@@ -43,6 +44,7 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
       }
     } catch (e) {
       print('Error: $e');
+      if (!mounted) return;
       setState(() {
         isLoading = false;
       });
@@ -56,12 +58,6 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crypto Prices'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: fetchCryptoData,
-          ),
-        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -99,7 +95,6 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                                       await favoritesProvider.addFavorite(
                                           user.id, coin);
                                     }
-                                    // No need for setState here since notifyListeners will trigger a rebuild
                                   }
                                 : null,
                           ),

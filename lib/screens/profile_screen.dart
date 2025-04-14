@@ -46,6 +46,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> fetchUserData() async {
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -131,10 +133,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Refresh user data
         await fetchUserData();
 
-        setState(() {
-          isEditing = false;
-          isSaving = false;
-        });
+        if (mounted) {
+          setState(() {
+            isEditing = false;
+            isSaving = false;
+          });
+        }
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -145,10 +149,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } catch (e) {
-      setState(() {
-        isSaving = false;
-        errorMessage = 'Failed to update profile: ${e.toString()}';
-      });
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+          errorMessage = 'Failed to update profile: ${e.toString()}';
+        });
+      }
 
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
