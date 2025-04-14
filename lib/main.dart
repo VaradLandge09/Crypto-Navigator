@@ -1,3 +1,4 @@
+import 'package:crypto_navigator/screens/news_screen.dart';
 import 'package:crypto_navigator/screens/reset_password_screen.dart';
 import 'package:crypto_navigator/screens/signup_screen.dart';
 import 'package:flutter/material.dart';
@@ -294,9 +295,11 @@ class _HomeScreenState extends State<HomeScreen>
     SearchScreen(),
     FavoritesScreen(),
     ProfileScreen(),
+    NewsScreen(),
   ];
 
   final List<String> _titles = [
+    'CryptoNavigator',
     'CryptoNavigator',
     'CryptoNavigator',
     'CryptoNavigator',
@@ -411,6 +414,12 @@ class _HomeScreenState extends State<HomeScreen>
               activeIcon: Icon(Icons.person),
               label: 'Profile',
               tooltip: 'Your Profile',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.article_outlined),
+              activeIcon: Icon(Icons.article),
+              label: 'News',
+              tooltip: 'Crypto News',
             ),
           ],
         ),
