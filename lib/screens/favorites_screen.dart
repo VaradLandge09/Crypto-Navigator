@@ -25,7 +25,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Favorites')),
       body: favoritesProvider.favorites.isEmpty
           ? Center(child: Text("No favorites added yet!"))
           : ListView.builder(

@@ -1,3 +1,6 @@
+// ignore_for_file: prefer_const_literals_to_create_immutables
+
+import 'package:crypto_navigator/providers/portfolio_provider.dart';
 import 'package:crypto_navigator/screens/news_screen.dart';
 import 'package:crypto_navigator/screens/reset_password_screen.dart';
 import 'package:crypto_navigator/screens/signup_screen.dart';
@@ -27,151 +30,108 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => FavoritesProvider()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => PortfolioProvider()),
       ],
       child: CryptoApp(),
     ),
   );
 }
 
-// Theme provider to handle theme switching
-class ThemeProvider with ChangeNotifier {
-  bool _isDarkMode = true;
-
-  bool get isDarkMode => _isDarkMode;
-
-  void toggleTheme() {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
-  }
-
-  ThemeData get currentTheme => _isDarkMode ? _darkTheme : _lightTheme;
-
-  // Dark theme
-  final ThemeData _darkTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    primaryColor: const Color(0xFF6200EE),
-    scaffoldBackgroundColor: const Color(0xFF121212),
-    cardColor: const Color(0xFF1E1E1E),
-    colorScheme: const ColorScheme.dark(
-      primary: Color(0xFF6200EE),
-      secondary: Color(0xFF03DAC6),
-      surface: Color(0xFF1E1E1E),
-      background: Color(0xFF121212),
-      error: Color(0xFFCF6679),
+// Application theme configuration with the new color palette
+final ThemeData appTheme = ThemeData(
+  useMaterial3: true,
+  brightness: Brightness.dark,
+  primaryColor: const Color(0xFF0D47A1), // Deep Blue
+  scaffoldBackgroundColor: const Color(0xFF121212), // Almost Black
+  cardColor: const Color(0xFF1F1F1F), // Card Backgrounds
+  colorScheme: const ColorScheme.dark(
+    primary: Color(0xFF0D47A1), // Deep Blue
+    secondary: Color(0xFF03DAC6), // Teal/Aqua
+    surface: Color(0xFF1F1F1F), // Card Backgrounds
+    background: Color(0xFF121212), // Almost Black
+    error: Color(0xFFFF5252), // Bright Red
+  ),
+  textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+    bodyColor: Colors.white, // Text Color
+    displayColor: Colors.white, // Text Color
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFF0D47A1), // Deep Blue
+    foregroundColor: Colors.white, // Text Color
+    elevation: 0,
+  ),
+  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+    selectedItemColor: Color(0xFF03DAC6), // Teal/Aqua
+    unselectedItemColor: Colors.white70, // Slightly transparent white
+    backgroundColor: Color(0xFF0D47A1), // Deep Blue
+    type: BottomNavigationBarType.fixed,
+    elevation: 8,
+  ),
+  cardTheme: CardTheme(
+    elevation: 4,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
     ),
-    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1E1E1E),
-      elevation: 0,
-    ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      selectedItemColor: const Color(0xFF6200EE),
-      unselectedItemColor: Colors.grey[500],
-      backgroundColor: const Color(0xFF1E1E1E),
-      type: BottomNavigationBarType.fixed,
-      elevation: 8,
-    ),
-    cardTheme: CardTheme(
-      elevation: 4,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF0D47A1), // Deep Blue
+      foregroundColor: Colors.white, // Text Color
+      padding: const EdgeInsets.symmetric(vertical: 16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
       ),
     ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF6200EE),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: const Color(0xFF1F1F1F), // Card Backgrounds
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide.none,
     ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: const Color(0xFF2A2A2A),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
-      ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide:
+          const BorderSide(color: Color(0xFF03DAC6), width: 2), // Teal/Aqua
     ),
-  );
-
-  // Light theme
-  final ThemeData _lightTheme = ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.light,
-    primaryColor: const Color(0xFF6200EE),
-    scaffoldBackgroundColor: const Color(0xFFF8F8F8),
-    cardColor: Colors.white,
-    colorScheme: const ColorScheme.light(
-      primary: Color(0xFF6200EE),
-      secondary: Color(0xFF03DAC6),
-      surface: Colors.white,
-      background: Color(0xFFF8F8F8),
-      error: Color(0xFFB00020),
-    ),
-    textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: Color(0xFF1E1E1E),
-      elevation: 0,
-    ),
-    bottomNavigationBarTheme: BottomNavigationBarThemeData(
-      selectedItemColor: const Color(0xFF6200EE),
-      unselectedItemColor: Colors.grey[600],
-      backgroundColor: Colors.white,
-      type: BottomNavigationBarType.fixed,
-      elevation: 8,
-    ),
-    cardTheme: CardTheme(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF6200EE),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: const Color(0xFFF0F0F0),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF6200EE), width: 2),
-      ),
-    ),
-  );
-}
-
-// In your main.dart file, update the CryptoApp class:
+  ),
+  progressIndicatorTheme: const ProgressIndicatorThemeData(
+    color: Color(0xFF03DAC6), // Teal/Aqua
+  ),
+  checkboxTheme: CheckboxThemeData(
+    fillColor: MaterialStateProperty.resolveWith((states) {
+      if (states.contains(MaterialState.selected)) {
+        return const Color(0xFF0D47A1); // Deep Blue
+      }
+      return null;
+    }),
+    checkColor: MaterialStateProperty.all(Colors.white),
+  ),
+  switchTheme: SwitchThemeData(
+    thumbColor: MaterialStateProperty.resolveWith((states) {
+      if (states.contains(MaterialState.selected)) {
+        return const Color(0xFF03DAC6); // Teal/Aqua
+      }
+      return Colors.grey;
+    }),
+    trackColor: MaterialStateProperty.resolveWith((states) {
+      if (states.contains(MaterialState.selected)) {
+        return const Color(0xFF03DAC6)
+            .withOpacity(0.5); // Teal/Aqua with opacity
+      }
+      return Colors.grey.withOpacity(0.5);
+    }),
+  ),
+);
 
 class CryptoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Crypto Tracker',
-      theme: themeProvider.currentTheme,
+      title: 'Crypto Navigator',
+      theme: appTheme,
       home: LoadingScreen(),
       routes: {
         '/signup': (context) => SignupScreen(),
@@ -194,18 +154,14 @@ class AuthGate extends StatelessWidget {
           return session != null ? HomeScreen() : LoginScreen();
         }
 
-        // Use our enhanced loading screen for the initial loading state
-        // while maintaining the same structure
-        final primaryColor = Theme.of(context).primaryColor;
-        final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-        final textColor = Theme.of(context).textTheme.titleLarge?.color;
+        final primaryColor = const Color(0xFF0D47A1); // Deep Blue
+        final accentColor = const Color(0xFF03DAC6); // Teal/Aqua
 
         return Scaffold(
           body: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Check if logo asset exists, otherwise use animated icon
                 FadeIn(
                   duration: const Duration(milliseconds: 1200),
                   child: Container(
@@ -222,9 +178,7 @@ class AuthGate extends StatelessWidget {
                     child: Center(
                       child: Icon(
                         Icons.currency_bitcoin,
-                        color: isDarkMode
-                            ? const Color(0xFF03DAC6)
-                            : primaryColor.withOpacity(0.8),
+                        color: accentColor,
                         size: 60,
                       ),
                     ),
@@ -239,7 +193,7 @@ class AuthGate extends StatelessWidget {
                     style: GoogleFonts.inter(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: textColor,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -251,7 +205,7 @@ class AuthGate extends StatelessWidget {
                     "Track. Analyze. Navigate.",
                     style: GoogleFonts.inter(
                       fontSize: 16,
-                      color: textColor?.withOpacity(0.7),
+                      color: Colors.white.withOpacity(0.7),
                     ),
                   ),
                 ),
@@ -262,10 +216,9 @@ class AuthGate extends StatelessWidget {
                   child: Container(
                     width: 200,
                     child: LinearProgressIndicator(
-                      backgroundColor: isDarkMode
-                          ? const Color(0xFF2A2A2A)
-                          : const Color(0xFFF0F0F0),
-                      valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+                      backgroundColor:
+                          const Color(0xFF1F1F1F), // Card background
+                      valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                       minHeight: 6,
                       borderRadius: BorderRadius.circular(3),
                     ),
@@ -299,11 +252,11 @@ class _HomeScreenState extends State<HomeScreen>
   ];
 
   final List<String> _titles = [
-    'CryptoNavigator',
-    'CryptoNavigator',
-    'CryptoNavigator',
-    'CryptoNavigator',
-    'CryptoNavigator',
+    'Market',
+    'Search',
+    'Favorites',
+    'Profile',
+    'News',
   ];
 
   @override
@@ -334,8 +287,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -345,20 +296,7 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         actions: [
-          // Theme toggle button
-          IconButton(
-            icon: Icon(
-              themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
-            ),
-            onPressed: () {
-              themeProvider.toggleTheme();
-            },
-            tooltip: themeProvider.isDarkMode
-                ? 'Switch to Light Mode'
-                : 'Switch to Dark Mode',
-          ),
-
-          // Notification bell (can be implemented later)
+          // Notification bell
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
@@ -383,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen>
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withOpacity(0.2),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -424,33 +362,17 @@ class _HomeScreenState extends State<HomeScreen>
           ],
         ),
       ),
-      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 2
-          ? FloatingActionButton(
-              onPressed: () {
-                // Add portfolio or refresh function depending on the screen
-                if (_selectedIndex == 0) {
-                  // Refresh market data
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Refreshing market data...'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                } else if (_selectedIndex == 2) {
-                  // Add to favorites - navigate to search
-                  setState(() {
-                    _selectedIndex = 1;
-                    _tabController.animateTo(1);
-                  });
-                }
-              },
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(
-                _selectedIndex == 0 ? Icons.refresh : Icons.add,
-                color: Colors.white,
-              ),
-            )
-          : null,
     );
   }
+}
+
+// Define these color constants to use throughout your app for price changes
+class AppColors {
+  static const Color priceUp = Color(0xFF00E676); // Bright Green
+  static const Color priceDown = Color(0xFFFF5252); // Bright Red
+  static const Color primaryDeepBlue = Color(0xFF0D47A1); // Deep Blue
+  static const Color accentTeal = Color(0xFF03DAC6); // Teal/Aqua
+  static const Color backgroundDark = Color(0xFF121212); // Almost Black
+  static const Color cardBackground = Color(0xFF1F1F1F); // Card Background
+  static const Color textColor = Colors.white; // Text Color
 }

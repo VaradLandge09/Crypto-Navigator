@@ -1,4 +1,7 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:crypto_navigator/providers/favorites_provider.dart';
+import 'package:crypto_navigator/providers/portfolio_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
@@ -6,6 +9,15 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Define color constants based on your palette
+const Color kPrimaryColor = Color(0xFF0D47A1); // Deep Blue
+const Color kAccentColor = Color(0xFF03DAC6); // Teal/Aqua
+const Color kDarkBackgroundColor = Color(0xFF121212); // Almost Black
+const Color kCardBackgroundColor = Color(0xFF1F1F1F); // Card Background
+const Color kPositiveColor = Color(0xFF00E676); // Bright Green
+const Color kNegativeColor = Color(0xFFFF5252); // Bright Red
+const Color kTextColor = Color(0xFFFFFFFF); // White
 
 class CryptoDetailScreen extends StatefulWidget {
   final Map<String, dynamic> coin;
@@ -30,6 +42,10 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     super.initState();
     fetchPriceData();
     fetchExistingAlerts();
+
+    Future.microtask(() {
+      fetchPortfolioData();
+    });
   }
 
   Future<void> fetchPriceData() async {
@@ -70,6 +86,17 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> fetchPortfolioData() async {
+    PortfolioProvider portfolioProvider =
+        Provider.of<PortfolioProvider>(context, listen: false);
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+
+    if (user != null) {
+      await portfolioProvider.fetchPortfolio(user.id);
     }
   }
 
@@ -182,7 +209,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                 children: [
                   Text('Current price: \$${currentPrice.toStringAsFixed(2)}'),
                   const SizedBox(height: 16),
-                  Text('Alert me when price goes:'),
+                  const Text('Alert me when price goes:'),
                   Row(
                     children: [
                       Radio<String>(
@@ -426,21 +453,20 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     final isFavorite = favoritesProvider.isFavorite(coin['id']);
 
     // Theme aware colors
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldBackgroundColor =
-        isDarkMode ? Colors.black : Colors.grey[100];
-    final cardBackgroundColor = isDarkMode ? Colors.grey[900] : Colors.white;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-    final secondaryTextColor = isDarkMode ? Colors.grey[300] : Colors.grey[600];
-    final dividerColor = isDarkMode ? Colors.grey[800] : Colors.grey[300];
-    final chipBackgroundColor =
-        isDarkMode ? Colors.grey[800] : Colors.grey[200];
+    // Replace the existing theme color definitions
+    final isDarkMode = true; // Force dark mode with your new palette
+    final scaffoldBackgroundColor = kDarkBackgroundColor;
+    final cardBackgroundColor = kCardBackgroundColor;
+    final textColor = kTextColor;
+    final secondaryTextColor = Colors.grey[400];
+    final dividerColor = Colors.grey[800];
+    final chipBackgroundColor = Colors.grey[800];
 
-    // Calculate the price color based on 24h change
+// Calculate the price color based on 24h change
     final Color priceColor =
         (widget.coin['price_change_percentage_24h'] ?? 0) >= 0
-            ? Colors.green
-            : Colors.red;
+            ? kPositiveColor
+            : kNegativeColor;
 
     // Calculate min and max for chart
     double minY = 0;
@@ -470,12 +496,12 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
       backgroundColor: scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: isDarkMode ? Colors.black : null,
+        backgroundColor: kPrimaryColor,
         title: Text(
           widget.coin['name'] ?? 'Unknown Coin',
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: textColor,
+            color: kTextColor,
           ),
         ),
         actions: [
@@ -713,8 +739,9 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
+                                          // Find the time frame selector code and update the color
                                           color: timeFrame == period
-                                              ? Theme.of(context).primaryColor
+                                              ? kAccentColor
                                               : Colors.transparent,
                                           borderRadius:
                                               BorderRadius.circular(20),
@@ -955,6 +982,208 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
 
                   const SizedBox(height: 16),
 
+// Portfolio Overview Section
+                  if (user != null)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: cardBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDarkMode
+                                ? Colors.black.withOpacity(0.3)
+                                : Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Your Portfolio",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: textColor,
+                                ),
+                              ),
+                              TextButton.icon(
+                                icon: const Icon(Icons.add),
+                                label: const Text('Add Coin'),
+                                onPressed: () =>
+                                    PortfolioMethods.showAddToPortfolioDialog(
+                                        context, widget.coin),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Consumer<PortfolioProvider>(
+                            builder: (context, portfolioProvider, child) {
+                              final entries = portfolioProvider
+                                  .getEntriesForCoin(widget.coin['id']);
+                              final totalQuantity = portfolioProvider
+                                  .getTotalQuantityForCoin(widget.coin['id']);
+                              final avgPurchasePrice = portfolioProvider
+                                  .getAveragePurchasePriceForCoin(
+                                      widget.coin['id']);
+                              final currentPrice =
+                                  widget.coin['current_price'] ?? 0.0;
+                              final profitLoss =
+                                  portfolioProvider.getProfitLossForCoin(
+                                      widget.coin['id'], currentPrice);
+
+                              return entries.isEmpty
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              Icons
+                                                  .account_balance_wallet_outlined,
+                                              size: 40,
+                                              color: secondaryTextColor,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'No ${widget.coin['name']} in your portfolio yet',
+                                              style: TextStyle(
+                                                color: secondaryTextColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: [
+                                        // Summary card
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: isDarkMode
+                                                ? Colors.grey[850]
+                                                : Colors.grey[50],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color:
+                                                  Colors.blue.withOpacity(0.3),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue
+                                                      .withOpacity(0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.account_balance_wallet,
+                                                  color: Colors.blue,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Total Holdings:',
+                                                      style: TextStyle(
+                                                        color:
+                                                            secondaryTextColor,
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '${totalQuantity.toStringAsFixed(4)} ${widget.coin['symbol'].toUpperCase()}',
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: textColor,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    '\$${(totalQuantity * currentPrice).toStringAsFixed(2)}',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
+                                                  ),
+                                                  Row(
+                                                    children: [
+                                                      Icon(
+                                                        profitLoss['amount'] >=
+                                                                0
+                                                            ? Icons.arrow_upward
+                                                            : Icons
+                                                                .arrow_downward,
+                                                        color: profitLoss[
+                                                                    'amount'] >=
+                                                                0
+                                                            ? Colors.green
+                                                            : Colors.red,
+                                                        size: 14,
+                                                      ),
+                                                      Text(
+                                                        '${profitLoss['percentage'].abs().toStringAsFixed(2)}%',
+                                                        style: TextStyle(
+                                                          color: profitLoss[
+                                                                      'amount'] >=
+                                                                  0
+                                                              ? Colors.green
+                                                              : Colors.red,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        TextButton(
+                                          onPressed: () => PortfolioMethods
+                                              .showPortfolioBottomSheet(
+                                                  context, widget.coin),
+                                          child: const Text(
+                                              'View All Transactions'),
+                                        ),
+                                      ],
+                                    );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+
                   // Active Alerts Section
                   if (user != null)
                     Container(
@@ -967,6 +1196,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                           BoxShadow(
                             color: isDarkMode
                                 ? Colors.black.withOpacity(0.3)
+                                // ignore: deprecated_member_use
                                 : Colors.grey.withOpacity(0.1),
                             spreadRadius: 1,
                             blurRadius: 5,
@@ -1220,9 +1450,9 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
               ),
             ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: kPrimaryColor,
         onPressed: _showAlertsBottomSheet,
-        child: const Icon(Icons.notifications_active, color: Colors.white),
+        child: const Icon(Icons.notifications_active, color: kTextColor),
         tooltip: 'Manage Price Alerts',
       ),
     );
