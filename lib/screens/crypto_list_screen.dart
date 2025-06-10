@@ -259,12 +259,16 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                                         children: [
                                           Row(
                                             children: [
-                                              Text(
-                                                coin['name'] ?? 'Unknown',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: textColor,
+                                              Flexible(
+                                                child: Text(
+                                                  coin['name'] ?? 'Unknown',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: textColor,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
@@ -305,44 +309,52 @@ class _CryptoListScreenState extends State<CryptoListScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 10),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 4,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: isPriceUp
-                                                      ? priceUp
-                                                          .withOpacity(0.15)
-                                                      : priceDown
-                                                          .withOpacity(0.15),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      isPriceUp
-                                                          ? Icons.arrow_upward
-                                                          : Icons
-                                                              .arrow_downward,
-                                                      size: 14,
-                                                      color: priceChangeColor,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      priceChangeText,
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.bold,
+                                              Flexible(
+                                                child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isPriceUp
+                                                        ? priceUp
+                                                            .withOpacity(0.15)
+                                                        : priceDown
+                                                            .withOpacity(0.15),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            6),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        isPriceUp
+                                                            ? Icons.arrow_upward
+                                                            : Icons
+                                                                .arrow_downward,
+                                                        size: 14,
                                                         color: priceChangeColor,
                                                       ),
-                                                    ),
-                                                  ],
+                                                      const SizedBox(width: 4),
+                                                      Flexible(
+                                                        child: Text(
+                                                          priceChangeText,
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color:
+                                                                priceChangeColor,
+                                                          ),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ],

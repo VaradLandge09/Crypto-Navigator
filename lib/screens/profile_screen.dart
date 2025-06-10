@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, unused_local_variable, unnecessary_null_comparison
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';

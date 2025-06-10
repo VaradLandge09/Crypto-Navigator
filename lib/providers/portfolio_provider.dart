@@ -28,7 +28,17 @@ class PortfolioProvider with ChangeNotifier {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      _portfolioEntries = List<Map<String, dynamic>>.from(response);
+      // Convert the response to ensure proper types
+      _portfolioEntries = (response as List).map((entry) {
+        return Map<String, dynamic>.from(entry)
+          ..updateAll((key, value) {
+            // Convert numeric fields to double
+            if (key == 'quantity' || key == 'purchase_price') {
+              return (value as num?)?.toDouble() ?? 0.0;
+            }
+            return value;
+          });
+      }).toList();
     } catch (e) {
       print('Error fetching portfolio: $e');
     } finally {
@@ -106,13 +116,13 @@ class PortfolioProvider with ChangeNotifier {
         .toList();
   }
 
-  // Calculate total holdings for a specific coin
+// Calculate total holdings for a specific coin
   double getTotalQuantityForCoin(String coinId) {
     return getEntriesForCoin(coinId)
-        .fold(0.0, (sum, entry) => sum + (entry['quantity'] ?? 0.0));
+        .fold(0.0, (sum, entry) => sum + ((entry['quantity'] ?? 0).toDouble()));
   }
 
-  // Calculate average purchase price for a specific coin
+// Calculate average purchase price for a specific coin
   double getAveragePurchasePriceForCoin(String coinId) {
     final entries = getEntriesForCoin(coinId);
     if (entries.isEmpty) return 0.0;
@@ -121,8 +131,8 @@ class PortfolioProvider with ChangeNotifier {
     double totalQuantity = 0.0;
 
     for (var entry in entries) {
-      final quantity = entry['quantity'] ?? 0.0;
-      final price = entry['purchase_price'] ?? 0.0;
+      final quantity = (entry['quantity'] ?? 0).toDouble();
+      final price = (entry['purchase_price'] ?? 0).toDouble();
 
       totalValue += quantity * price;
       totalQuantity += quantity;

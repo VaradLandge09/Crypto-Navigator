@@ -1,4 +1,6 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, library_private_types_in_public_api, use_key_in_widget_constructors, avoid_print, use_build_context_synchronously, prefer_const_constructors, sized_box_for_whitespace, dead_code, sort_child_properties_last
+
+import 'dart:async';
 
 import 'package:crypto_navigator/providers/favorites_provider.dart';
 import 'package:crypto_navigator/providers/portfolio_provider.dart';
@@ -22,7 +24,7 @@ const Color kTextColor = Color(0xFFFFFFFF); // White
 class CryptoDetailScreen extends StatefulWidget {
   final Map<String, dynamic> coin;
 
-  CryptoDetailScreen({required this.coin});
+  const CryptoDetailScreen({required this.coin});
 
   @override
   _CryptoDetailScreenState createState() => _CryptoDetailScreenState();
@@ -36,6 +38,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
   List<FlSpot> predictionData = [];
   List<Map<String, dynamic>> priceAlerts = [];
   bool isLoadingAlerts = false;
+  Map<String, dynamic>? currentPredictionData;
 
   @override
   void initState() {
@@ -408,36 +411,845 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     );
   }
 
-  void generatePrediction() {
+  Future<void> generatePrediction() async {
     setState(() {
       isPredicting = true;
     });
 
-    // Simulate prediction loading
-    Future.delayed(const Duration(seconds: 2), () {
-      if (priceData.isNotEmpty) {
-        // This is a simple mock prediction - in a real app this would use a proper algorithm
-        final lastPrice = priceData.last.y;
-        final lastIndex = priceData.last.x;
+    try {
+      // Replace 'YOUR_RENDER_URL' with your actual Render deployment URL
+      final symbol = widget.coin['id']?.toLowerCase() ?? 'bitcoin';
+      print(symbol);
+      final apiUrl = 'http://localhost:5000/predict/$symbol';
+      // final apiUrl = 'https://crypto-predictor-dyi1.onrender.com/predict/$symbol';
 
-        List<FlSpot> futurePoints = [];
-        for (int i = 1; i <= 7; i++) {
-          // Simple trend-based prediction algorithm
-          double predictedPrice = lastPrice *
-              (1 + (widget.coin['price_change_percentage_24h'] / 100) * i / 3);
-          futurePoints.add(FlSpot(lastIndex + i, predictedPrice));
+      final response = await http.get(Uri.parse(apiUrl), headers: {
+        'Content-Type': 'application/json',
+      });
+
+      print('API Response Status: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Model exists and prediction successful
+        final predictionResult = json.decode(response.body);
+
+        if (priceData.isNotEmpty) {
+          final lastIndex = priceData.last.x;
+          List<FlSpot> futurePoints = [];
+
+          // Handle your API response format
+          if (predictionResult['predicted_price'] != null) {
+            double predictedPrice =
+                predictionResult['predicted_price'].toDouble();
+            double currentPrice =
+                predictionResult['current_price']?.toDouble() ??
+                    widget.coin['current_price'] ??
+                    0.0;
+
+            // Generate prediction trend over 7 days
+            final dailyChange = (predictedPrice - currentPrice) / 7;
+
+            for (int i = 1; i <= 7; i++) {
+              double dayPrice = currentPrice + (dailyChange * i);
+              futurePoints.add(FlSpot(lastIndex + i, dayPrice));
+            }
+
+            setState(() {
+              predictionData = futurePoints;
+              currentPredictionData =
+                  predictionResult; // Store full prediction data
+              isPredicting = false;
+            });
+
+            // Show success message with prediction summary
+            final changePercentage =
+                predictionResult['change_percent']?.toDouble() ?? 0.0;
+            final confidence =
+                predictionResult['confidence']?.toDouble() ?? 0.0;
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Prediction: ${changePercentage >= 0 ? '+' : ''}${changePercentage.toStringAsFixed(2)}% | Confidence: ${(confidence * 100).toStringAsFixed(0)}%',
+                ),
+                backgroundColor:
+                    changePercentage >= 0 ? kPositiveColor : kNegativeColor,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
+      } else if (response.statusCode == 202) {
+        // Model training started or in progress
+        final responseData = json.decode(response.body);
+        final status = responseData['status'];
+        final message = responseData['message'];
+        final trainingInfo = responseData['training_info'];
 
         setState(() {
-          predictionData = futurePoints;
           isPredicting = false;
+          currentPredictionData = null;
+          predictionData = [];
         });
+
+        if (status == 'training_started') {
+          // Training just started
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Model Training Started',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    message ??
+                        'Training model for ${widget.coin['symbol']?.toUpperCase()}...',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Estimated completion: ${responseData['estimated_completion'] ?? '2-5 minutes'}',
+                    style: TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 6),
+              action: SnackBarAction(
+                label: 'Check Status',
+                textColor: Colors.white,
+                onPressed: () => _checkTrainingStatus(),
+              ),
+            ),
+          );
+
+          // Start polling for training completion
+          _startTrainingStatusPolling();
+        } else if (status == 'training_in_progress') {
+          // Training already in progress
+          final progress = trainingInfo?['progress'] ?? 0;
+          final trainingMessage =
+              trainingInfo?['message'] ?? 'Training in progress...';
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          value: progress > 0 ? progress / 100 : null,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Training in Progress (${progress}%)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    trainingMessage,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Please wait a few minutes and try again',
+                    style: TextStyle(fontSize: 11, color: Colors.white70),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: () => generatePrediction(),
+              ),
+            ),
+          );
+        }
       } else {
-        setState(() {
-          isPredicting = false;
-        });
+        // Other error responses
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ??
+            'API request failed with status: ${response.statusCode}');
       }
+    } catch (e) {
+      print('Prediction API Error: $e');
+
+      setState(() {
+        isPredicting = false;
+      });
+
+      // Check if it's a training-related error
+      if (e.toString().contains('training') || e.toString().contains('model')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.info_outline, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Model Training Required',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'AI model for ${widget.coin['symbol']?.toUpperCase()} needs to be trained first.',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blue,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Start Training',
+              textColor: Colors.white,
+              onPressed: () => _startManualTraining(),
+            ),
+          ),
+        );
+      } else {
+        // Fallback to simple prediction if API fails completely
+        if (priceData.isNotEmpty) {
+          final lastPrice = priceData.last.y;
+          final lastIndex = priceData.last.x;
+
+          List<FlSpot> futurePoints = [];
+          for (int i = 1; i <= 7; i++) {
+            double predictedPrice = lastPrice *
+                (1 +
+                    (widget.coin['price_change_percentage_24h'] / 100) * i / 3);
+            futurePoints.add(FlSpot(lastIndex + i, predictedPrice));
+          }
+
+          setState(() {
+            predictionData = futurePoints;
+            currentPredictionData = null; // Clear prediction data on fallback
+            isPredicting = false;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: const [
+                  Icon(Icons.offline_bolt, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                      child:
+                          Text('Using offline prediction (API unavailable)')),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: const [
+                  Icon(Icons.error_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('Failed to generate prediction')),
+                ],
+              ),
+              backgroundColor: kNegativeColor,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+// Add these new methods for training management
+  Timer? _trainingPollingTimer;
+
+  void _startTrainingStatusPolling() {
+    _trainingPollingTimer?.cancel();
+    _trainingPollingTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      _checkTrainingStatus();
     });
+  }
+
+  void _stopTrainingStatusPolling() {
+    _trainingPollingTimer?.cancel();
+    _trainingPollingTimer = null;
+  }
+
+  Future<void> _checkTrainingStatus() async {
+    try {
+      final symbol = widget.coin['symbol']?.toLowerCase() ?? 'bitcoin';
+      final statusUrl =
+          'https://crypto-predictor-dyi1.onrender.com/training-status/$symbol';
+
+      final response = await http.get(Uri.parse(statusUrl), headers: {
+        'Content-Type': 'application/json',
+      });
+
+      if (response.statusCode == 200) {
+        final statusData = json.decode(response.body);
+        final trainingInfo = statusData['training_info'];
+        final status = trainingInfo['status'];
+
+        if (status == 'completed') {
+          _stopTrainingStatusPolling();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: const [
+                  Icon(Icons.check_circle, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                      child: Text(
+                          'Model training completed! Ready for predictions.')),
+                ],
+              ),
+              backgroundColor: kPositiveColor,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Predict',
+                textColor: Colors.white,
+                onPressed: () => generatePrediction(),
+              ),
+            ),
+          );
+        } else if (status == 'failed') {
+          _stopTrainingStatusPolling();
+
+          final errorMessage = trainingInfo['error'] ?? 'Training failed';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('Training failed: $errorMessage')),
+                ],
+              ),
+              backgroundColor: kNegativeColor,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } else if (status == 'training') {
+          final progress = trainingInfo['progress'] ?? 0;
+          final message = trainingInfo['message'] ?? 'Training...';
+          print('Training progress: $progress% - $message');
+        }
+      }
+    } catch (e) {
+      print('Error checking training status: $e');
+    }
+  }
+
+  Future<void> _startManualTraining() async {
+    try {
+      final symbol = widget.coin['symbol']?.toLowerCase() ?? 'bitcoin';
+      final trainUrl =
+          'https://crypto-predictor-dyi1.onrender.com/train/$symbol';
+
+      final response = await http.post(
+        Uri.parse(trainUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'days': 90,
+          'epochs': 30,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Training Started',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  responseData['message'] ?? 'Model training initiated',
+                  style: TextStyle(fontSize: 12),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Estimated completion: ${responseData['estimated_completion'] ?? '2-5 minutes'}',
+                  style: TextStyle(fontSize: 11, color: Colors.white70),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+
+        // Start polling for completion
+        _startTrainingStatusPolling();
+      } else {
+        throw Exception('Failed to start training');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text('Failed to start training: $e')),
+            ],
+          ),
+          backgroundColor: kNegativeColor,
+        ),
+      );
+    }
+  }
+
+// Don't forget to dispose the timer when the widget is disposed
+  @override
+  void dispose() {
+    _stopTrainingStatusPolling();
+    super.dispose();
+  }
+
+// Enhanced prediction summary with all essential information
+  Widget buildPredictionSummary() {
+    if (predictionData.isEmpty) return const SizedBox.shrink();
+
+    final currentPrice = currentPredictionData?['current_price']?.toDouble() ??
+        widget.coin['current_price'] ??
+        0.0;
+    final predictedPrice =
+        currentPredictionData?['predicted_price']?.toDouble() ??
+            predictionData.last.y;
+    final changePercentage =
+        currentPredictionData?['change_percent']?.toDouble() ??
+            ((predictedPrice - currentPrice) / currentPrice * 100);
+    final confidence = currentPredictionData?['confidence']?.toDouble() ?? 0.0;
+    final direction = currentPredictionData?['direction'] ?? 'unknown';
+    final recommendation = currentPredictionData?['recommendation'] ?? 'Hold';
+    final predictionMethod =
+        currentPredictionData?['prediction_method'] ?? 'Basic';
+    final dataPointsUsed = currentPredictionData?['data_points_used'] ?? 0;
+    final timestamp = currentPredictionData?['timestamp'];
+
+    final isPositive = changePercentage >= 0;
+    final changeAmount = predictedPrice - currentPrice;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kCardBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isPositive
+              ? kPositiveColor.withOpacity(0.3)
+              : kNegativeColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with prediction method and timestamp
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.auto_graph,
+                    color: isPositive ? kPositiveColor : kNegativeColor,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'AI Prediction',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: kTextColor,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              if (timestamp != null)
+                Text(
+                  _formatTimestamp(timestamp),
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 11,
+                  ),
+                ),
+            ],
+          ),
+
+          // Method and data info
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  predictionMethod.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$dataPointsUsed data points',
+                style: TextStyle(
+                  color: Colors.grey[400],
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Price comparison
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Current Price',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${currentPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        color: kTextColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward,
+                color: Colors.grey[500],
+                size: 20,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Predicted Price',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '\$${predictedPrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: isPositive ? kPositiveColor : kNegativeColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Change indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isPositive
+                  ? kPositiveColor.withOpacity(0.1)
+                  : kNegativeColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPositive ? Icons.trending_up : Icons.trending_down,
+                  color: isPositive ? kPositiveColor : kNegativeColor,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${isPositive ? '+' : ''}${changePercentage.toStringAsFixed(2)}%',
+                  style: TextStyle(
+                    color: isPositive ? kPositiveColor : kNegativeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '(${isPositive ? '+' : ''}\$${changeAmount.toStringAsFixed(2)})',
+                  style: TextStyle(
+                    color: isPositive ? kPositiveColor : kNegativeColor,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Confidence and recommendation row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Confidence indicator
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Confidence Level',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: Colors.grey[700],
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: confidence,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color: _getConfidenceColor(confidence),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${(confidence * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          color: _getConfidenceColor(confidence),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Recommendation badge
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color:
+                      _getRecommendationColor(recommendation).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _getRecommendationColor(recommendation)
+                        .withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getRecommendationIcon(recommendation),
+                      color: _getRecommendationColor(recommendation),
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      recommendation.toUpperCase(),
+                      style: TextStyle(
+                        color: _getRecommendationColor(recommendation),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Disclaimer
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Predictions are estimates. Crypto markets are highly volatile. Invest responsibly.',
+                    style: TextStyle(
+                      color: Colors.orange[300],
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+// Helper methods
+  String _formatTimestamp(String timestamp) {
+    try {
+      final dateTime = DateTime.parse(timestamp);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else {
+        return '${difference.inDays}d ago';
+      }
+    } catch (e) {
+      return 'Recently';
+    }
+  }
+
+  Color _getConfidenceColor(double confidence) {
+    if (confidence >= 0.8) return Colors.green;
+    if (confidence >= 0.6) return Colors.orange;
+    return Colors.red;
+  }
+
+  Color _getRecommendationColor(String recommendation) {
+    switch (recommendation.toLowerCase()) {
+      case 'buy':
+        return kPositiveColor;
+      case 'sell':
+        return kNegativeColor;
+      case 'hold':
+      default:
+        return Colors.orange;
+    }
+  }
+
+  IconData _getRecommendationIcon(String recommendation) {
+    switch (recommendation.toLowerCase()) {
+      case 'buy':
+        return Icons.shopping_cart;
+      case 'sell':
+        return Icons.sell;
+      case 'hold':
+      default:
+        return Icons.pause;
+    }
   }
 
   String formatNumber(dynamic number) {
@@ -454,10 +1266,10 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
 
     // Theme aware colors
     // Replace the existing theme color definitions
-    final isDarkMode = true; // Force dark mode with your new palette
-    final scaffoldBackgroundColor = kDarkBackgroundColor;
-    final cardBackgroundColor = kCardBackgroundColor;
-    final textColor = kTextColor;
+    const isDarkMode = true; // Force dark mode with your new palette
+    const scaffoldBackgroundColor = kDarkBackgroundColor;
+    const cardBackgroundColor = kCardBackgroundColor;
+    const textColor = kTextColor;
     final secondaryTextColor = Colors.grey[400];
     final dividerColor = Colors.grey[800];
     final chipBackgroundColor = Colors.grey[800];
@@ -976,6 +1788,7 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                               ),
                             ),
                           ),
+                        buildPredictionSummary(),
                       ],
                     ),
                   ),
@@ -1035,8 +1848,15 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                               final avgPurchasePrice = portfolioProvider
                                   .getAveragePurchasePriceForCoin(
                                       widget.coin['id']);
-                              final currentPrice =
-                                  widget.coin['current_price'] ?? 0.0;
+
+                              // Safe type conversion for current price
+                              final currentPrice = (widget.coin['current_price']
+                                      is int)
+                                  ? (widget.coin['current_price'] as int)
+                                      .toDouble()
+                                  : (widget.coin['current_price'] as double?) ??
+                                      0.0;
+
                               final profitLoss =
                                   portfolioProvider.getProfitLossForCoin(
                                       widget.coin['id'], currentPrice);
@@ -1138,23 +1958,42 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                                                   Row(
                                                     children: [
                                                       Icon(
-                                                        profitLoss['amount'] >=
+                                                        (profitLoss['amount']
+                                                                        is int
+                                                                    ? (profitLoss['amount']
+                                                                            as int)
+                                                                        .toDouble()
+                                                                    : profitLoss[
+                                                                            'amount']
+                                                                        as double) >=
                                                                 0
                                                             ? Icons.arrow_upward
                                                             : Icons
                                                                 .arrow_downward,
-                                                        color: profitLoss[
-                                                                    'amount'] >=
+                                                        color: (profitLoss['amount']
+                                                                        is int
+                                                                    ? (profitLoss['amount']
+                                                                            as int)
+                                                                        .toDouble()
+                                                                    : profitLoss[
+                                                                            'amount']
+                                                                        as double) >=
                                                                 0
                                                             ? Colors.green
                                                             : Colors.red,
                                                         size: 14,
                                                       ),
                                                       Text(
-                                                        '${profitLoss['percentage'].abs().toStringAsFixed(2)}%',
+                                                        '${((profitLoss['percentage'] is int ? (profitLoss['percentage'] as int).toDouble() : profitLoss['percentage'] as double).abs()).toStringAsFixed(2)}%',
                                                         style: TextStyle(
-                                                          color: profitLoss[
-                                                                      'amount'] >=
+                                                          color: (profitLoss['amount']
+                                                                          is int
+                                                                      ? (profitLoss['amount']
+                                                                              as int)
+                                                                          .toDouble()
+                                                                      : profitLoss[
+                                                                              'amount']
+                                                                          as double) >=
                                                                   0
                                                               ? Colors.green
                                                               : Colors.red,
@@ -1183,7 +2022,6 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
                         ],
                       ),
                     ),
-
                   // Active Alerts Section
                   if (user != null)
                     Container(
