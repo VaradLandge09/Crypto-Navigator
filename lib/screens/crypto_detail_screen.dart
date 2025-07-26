@@ -718,86 +718,166 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
     _trainingPollingTimer = null;
   }
 
-  Future<void> _checkTrainingStatus() async {
-    try {
-      final symbol = widget.coin['symbol']?.toLowerCase() ?? 'bitcoin';
-      final statusUrl =
-          'https://crypto-predictor-dyi1.onrender.com/training-status/$symbol';
+  // Future<void> _checkTrainingStatus() async {
+  //   try {
+  //     // Fix: Use 'id' instead of 'symbol' to match the API endpoint
+  //     final symbol = widget.coin['id']?.toLowerCase() ?? 'bitcoin';
+  //     final statusUrl =
+  //         'https://crypto-predictor-dyi1.onrender.com/training-status/$symbol';
 
-      final response = await http.get(Uri.parse(statusUrl), headers: {
-        'Content-Type': 'application/json',
-      });
+  //     print('Checking training status for: $symbol'); // Debug log
 
-      if (response.statusCode == 200) {
-        final statusData = json.decode(response.body);
-        final trainingInfo = statusData['training_info'];
-        final status = trainingInfo['status'];
+  //     final response = await http.get(Uri.parse(statusUrl), headers: {
+  //       'Content-Type': 'application/json',
+  //     });
 
-        if (status == 'completed') {
-          _stopTrainingStatusPolling();
+  //     print('Training Status Response: ${response.statusCode}');
+  //     print('Training Status Body: ${response.body}');
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Expanded(
-                      child: Text(
-                          'Model training completed! Ready for predictions.')),
-                ],
-              ),
-              backgroundColor: kPositiveColor,
-              duration: const Duration(seconds: 3),
-              action: SnackBarAction(
-                label: 'Predict',
-                textColor: Colors.white,
-                onPressed: () => generatePrediction(),
-              ),
-            ),
-          );
-        } else if (status == 'failed') {
-          _stopTrainingStatusPolling();
+  //     if (response.statusCode == 200) {
+  //       final statusData = json.decode(response.body);
+  //       final trainingInfo = statusData['training_info'];
+  //       final status = trainingInfo['status'];
 
-          final errorMessage = trainingInfo['error'] ?? 'Training failed';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Expanded(child: Text('Training failed: $errorMessage')),
-                ],
-              ),
-              backgroundColor: kNegativeColor,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        } else if (status == 'training') {
-          final progress = trainingInfo['progress'] ?? 0;
-          final message = trainingInfo['message'] ?? 'Training...';
-          print('Training progress: $progress% - $message');
-        }
-      }
-    } catch (e) {
-      print('Error checking training status: $e');
-    }
-  }
+  //       print('Training Status: $status'); // Debug log
 
+  //       if (status == 'completed') {
+  //         _stopTrainingStatusPolling();
+
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Row(
+  //               children: const [
+  //                 Icon(Icons.check_circle, color: Colors.white, size: 16),
+  //                 SizedBox(width: 8),
+  //                 Expanded(
+  //                     child: Text(
+  //                         'Model training completed! Ready for predictions.')),
+  //               ],
+  //             ),
+  //             backgroundColor: kPositiveColor,
+  //             duration: const Duration(seconds: 3),
+  //             action: SnackBarAction(
+  //               label: 'Predict',
+  //               textColor: Colors.white,
+  //               onPressed: () => generatePrediction(),
+  //             ),
+  //           ),
+  //         );
+  //       } else if (status == 'failed') {
+  //         _stopTrainingStatusPolling();
+
+  //         final errorMessage = trainingInfo['error'] ?? 'Training failed';
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Row(
+  //               children: [
+  //                 Icon(Icons.error_outline, color: Colors.white, size: 16),
+  //                 SizedBox(width: 8),
+  //                 Expanded(child: Text('Training failed: $errorMessage')),
+  //               ],
+  //             ),
+  //             backgroundColor: kNegativeColor,
+  //             duration: const Duration(seconds: 4),
+  //           ),
+  //         );
+  //       } else if (status == 'training') {
+  //         final progress = trainingInfo['progress'] ?? 0;
+  //         final message = trainingInfo['message'] ?? 'Training...';
+  //         print('Training progress: $progress% - $message');
+
+  //         // Show progress to user
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(
+  //             content: Column(
+  //               mainAxisSize: MainAxisSize.min,
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Row(
+  //                   children: [
+  //                     SizedBox(
+  //                       width: 16,
+  //                       height: 16,
+  //                       child: CircularProgressIndicator(
+  //                         strokeWidth: 2,
+  //                         value: progress > 0 ? progress / 100 : null,
+  //                         valueColor:
+  //                             AlwaysStoppedAnimation<Color>(Colors.white),
+  //                       ),
+  //                     ),
+  //                     SizedBox(width: 8),
+  //                     Text(
+  //                       'Training Progress: ${progress}%',
+  //                       style: TextStyle(fontWeight: FontWeight.bold),
+  //                     ),
+  //                   ],
+  //                 ),
+  //                 SizedBox(height: 4),
+  //                 Text(
+  //                   message,
+  //                   style: TextStyle(fontSize: 12),
+  //                 ),
+  //               ],
+  //             ),
+  //             backgroundColor: Colors.blue,
+  //             duration: const Duration(seconds: 2),
+  //           ),
+  //         );
+  //       }
+  //     } else {
+  //       print('Training status check failed: ${response.statusCode}');
+  //       // Handle error response
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Failed to check training status'),
+  //           backgroundColor: Colors.orange,
+  //           duration: const Duration(seconds: 2),
+  //         ),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     print('Error checking training status: $e');
+
+  //     // Show error to user
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Row(
+  //           children: [
+  //             Icon(Icons.error_outline, color: Colors.white, size: 16),
+  //             SizedBox(width: 8),
+  //             Text('Connection error: Unable to check status'),
+  //           ],
+  //         ),
+  //         backgroundColor: kNegativeColor,
+  //         duration: const Duration(seconds: 3),
+  //       ),
+  //     );
+  //   }
+  // }
+
+// Also fix the manual training method
   Future<void> _startManualTraining() async {
     try {
-      final symbol = widget.coin['symbol']?.toLowerCase() ?? 'bitcoin';
-      final trainUrl =
-          'https://crypto-predictor-dyi1.onrender.com/train/$symbol';
+      // Fix: Use 'id' instead of 'symbol' to match the API endpoint
+      final symbol = widget.coin['id']?.toLowerCase() ?? 'bitcoin';
+
+      final trainUrl = 'http://localhost:5000/train/$symbol';
+      // final trainUrl =
+      //     'https://crypto-predictor-dyi1.onrender.com/train/$symbol';
+
+      print('Starting training for: $symbol'); // Debug log
 
       final response = await http.post(
         Uri.parse(trainUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'days': 90,
-          'epochs': 30,
+          'days': 120,
+          'epochs': 50,
         }),
       );
+
+      print('Training Start Response: ${response.statusCode}');
+      print('Training Start Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -847,9 +927,10 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
         // Start polling for completion
         _startTrainingStatusPolling();
       } else {
-        throw Exception('Failed to start training');
+        throw Exception('Failed to start training: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error starting training: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -860,6 +941,145 @@ class _CryptoDetailScreenState extends State<CryptoDetailScreen> {
             ],
           ),
           backgroundColor: kNegativeColor,
+        ),
+      );
+    }
+  }
+
+  Future<void> _checkTrainingStatus() async {
+    try {
+      // Fix: Use 'id' instead of 'symbol' to match the API endpoint
+      final symbol = widget.coin['id']?.toLowerCase() ?? 'bitcoin';
+
+      final statusUrl = 'http://localhost:5000/training-status/$symbol';
+      // final statusUrl =
+      //     'https://crypto-predictor-dyi1.onrender.com/training-status/$symbol';
+
+      print('Checking training status for: $symbol'); // Debug log
+
+      final response = await http.get(Uri.parse(statusUrl), headers: {
+        'Content-Type': 'application/json',
+      });
+
+      print('Training Status Response: ${response.statusCode}');
+      print('Training Status Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final statusData = json.decode(response.body);
+        final trainingInfo = statusData['training_info'];
+        final status = trainingInfo['status'];
+
+        print('Training Status: $status'); // Debug log
+
+        if (status == 'completed') {
+          _stopTrainingStatusPolling();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: const [
+                  Icon(Icons.check_circle, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                      child: Text(
+                          'Model training completed! Ready for predictions.')),
+                ],
+              ),
+              backgroundColor: kPositiveColor,
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Predict',
+                textColor: Colors.white,
+                onPressed: () => generatePrediction(),
+              ),
+            ),
+          );
+        } else if (status == 'failed') {
+          _stopTrainingStatusPolling();
+
+          final errorMessage = trainingInfo['error'] ?? 'Training failed';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('Training failed: $errorMessage')),
+                ],
+              ),
+              backgroundColor: kNegativeColor,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } else if (status == 'training') {
+          final progress = trainingInfo['progress'] ?? 0;
+          final message = trainingInfo['message'] ?? 'Training...';
+          print('Training progress: $progress% - $message');
+
+          // Show progress to user
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          value: progress > 0 ? progress / 100 : null,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Training Progress: ${progress}%',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        print('Training status check failed: ${response.statusCode}');
+        // Handle error response
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to check training status'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error checking training status: $e');
+
+      // Show error to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Text('Connection error: Unable to check status'),
+            ],
+          ),
+          backgroundColor: kNegativeColor,
+          duration: const Duration(seconds: 3),
         ),
       );
     }
