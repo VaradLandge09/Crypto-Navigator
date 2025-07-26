@@ -2,11 +2,6 @@
 
 A comprehensive Flutter application for tracking, analyzing, and predicting cryptocurrency market trends. Get real-time insights, historical data, and AI-powered predictions for your favorite cryptocurrencies.
 
-## 📱 Screenshots
-
-<!-- Add screenshots of your app here -->
-*Coming soon - Add screenshots to showcase your app's interface*
-
 ## 📋 Table of Contents
 
 - [Features](#features)
